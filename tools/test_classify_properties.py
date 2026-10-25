@@ -11,6 +11,26 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(self.stage("Сградата е с акт 14, има акт образец 15."), "act15")
     def test_future_act16_does_not_override_act14(self):
         self.assertEqual(self.stage("На акт 14, акт 16 се очаква през 2028 г."), "act14")
+    def test_attained_act14_survives_future_commissioning(self):
+        self.assertEqual(self.stage("Сградата е на етап АКТ 14, а въвеждане в експлоатация се очаква до края на 2027г."), "act14")
+    def test_act14_survives_later_commissioning_planned_for_2027(self):
+        self.assertEqual(self.stage("Сградата е със заверен Груб строеж (Акт 14), като въвеждането в експлоатация (Акт 16) е заложено за края на 2027г."), "act14")
+    def test_act15_survives_predicted_future_commissioning(self):
+        self.assertEqual(self.stage("Сградата е с Акт 15. Предвижда се сградата да бъде въведена в експлоатация до Нова година."), "act15")
+    def test_listing_verb_does_not_look_like_pred_act(self):
+        self.assertEqual(self.stage("Имотът се предлага на етап Акт 14, с издадено удостоверение по чл.181."), "act14")
+    def test_future_finish_does_not_erase_attained_act14(self):
+        self.assertEqual(self.stage("Къщата към днешна дата е с Акт 14 като ще бъде напълно завършена и обзаведена."), "act14")
+    def test_act16_and_permit_synonym_share_future_date(self):
+        self.assertEqual(self.stage("Етап на строителство: Акт 16 / Разрешение за ползване Пролет 2027г."), "unknown")
+    def test_act16_with_historical_year_is_attained(self):
+        self.assertEqual(self.stage("Сградата е с Акт 16 от 2008 г. и се предлага за продажба."), "act16")
+    def test_act16_in_building_description_after_neposleden(self):
+        self.assertEqual(self.stage("Тухлена монолитна сграда с акт 16 от 1997 г., отлично поддържана."), "act16")
+    def test_historical_act16_is_not_cancelled_by_unrelated_future_year(self):
+        self.assertEqual(self.stage("Сградата е с Акт 16 от 1997 г. Имотът може да бъде реновиран през 2028 г."), "act16")
+    def test_pred_act_is_not_attained(self):
+        self.assertEqual(self.stage("Сградата е пред акт 15."), "unknown")
     def test_future_act16_does_not_override_act15(self):
         self.assertEqual(self.stage("Етап: акт обр.15. Очакван Акт 16 в края на 2026 г."), "act15")
     def test_future_only_is_unknown(self):
@@ -69,6 +89,12 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(self.furnishing("С вградени кухненски уреди."), "partial")
     def test_explicit_partially_furnished(self):
         self.assertEqual(self.furnishing("Частично обзаведен апартамент."), "partial")
+    def test_semi_furnished_is_partial(self):
+        self.assertEqual(self.furnishing("Полуобзаведен едностаен апартамент."), "partial")
+    def test_rendered_image_is_not_actual_furnishing(self):
+        self.assertEqual(self.furnishing("AI генерирани изображения представят имота в завършен и обзаведен вид."), "unknown")
+    def test_common_lounge_furniture_is_not_unit_furnishing(self):
+        self.assertEqual(self.furnishing("Напълно обзаведен кът за отдих и срещи с камина."), "unknown")
     def test_conflicting_furnishing(self):
         self.assertEqual(self.furnishing("Напълно обзаведен, но имотът е необзаведен."), "conflict")
     def test_room_level_mixed_furnishing_is_partial(self):

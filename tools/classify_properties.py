@@ -10,7 +10,7 @@ from pathlib import Path
 
 STAGES = ["green", "act14", "act15", "act16"]
 STAGE_PATTERNS = {
-    "act16": re.compile(r"(?<!\w)акт\s*(?:(?:обр\.?|образец)\s*)?16(?!\w)|(?<!\w)акт\s+шестнадесет(?!\w)|разрешение\s+за\s+ползване|въведен[ао]?\s+в\s+експлоатация", re.I),
+    "act16": re.compile(r"(?<!\w)акт\s*(?:(?:обр\.?|образец)\s*)?16(?!\w)|(?<!\w)акт\s+шестнадесет(?!\w)|разрешение\s+за\s+ползване|въвеждане(?:то)?\s+в\s+експлоатация|въведен[ао]?\s+в\s+експлоатация", re.I),
     "act15": re.compile(r"(?<!\w)акт\s*(?:(?:обр\.?|образец)\s*)?15(?!\w)|(?<!\w)акт\s+петнадесет(?!\w)", re.I),
     "act14": re.compile(r"(?<!\w)акт\s*(?:(?:обр\.?|образец)\s*)?14(?!\w)|(?<!\w)акт\s+четиринадесет(?!\w)", re.I),
     "green": re.compile(r"на\s+зелено|зелено\s+строителство|(?:сграда|строителство|проект)\s+на\s+етап\s+проект|в\s+проектна\s+фаза", re.I),
@@ -35,38 +35,61 @@ def classify_stage(title: str, desc: str, listing: dict) -> tuple[str,list[str]]
     if LAND.search(title) and not re.search(r"апартамент|жилищ|сграда|къща", title, re.I):
         return "not_applicable", ["Title identifies a land/parcel listing; construction stage does not apply."]
     candidates=[]; rejected=[]; negatives=set()
-    cue=re.compile(r"очакван|очаква(?:\s+се)?|предстоящ|предстои|планиран|планира\s+се|ще\s+(?:бъде|има|получи)|не\s+(?:е\s+)?(?:взет|издаден|получен)|до\s+(?:получаване|акт|края|20\d{2}|[0-3]?\d[./-])|подадени\s+документи|очаква\s+се\s+издаване|срок|прогноз|преди|пред|след(?:\s+(?:получаване|издаване|акт))?|за\s+акт",re.I)
-    stage_re=re.compile(r"(?<!\w)акт\s*(?:(?:обр\.?|образец)\s*)?(?:14|15|16)(?!\w)",re.I)
+    cue_before=re.compile(r"очакван|очаква(?:\s+се)?|предстоящ|предстои|предвижда(?:\s+се)?|заложен[ао]?|планиран|планира\s+се|ще\s+(?:бъде|има|получи|взет|издаден)|не\s+(?:е\s+)?(?:взет|издаден|получен)|до\s+(?:получаване|акт|края|20\d{2}|[0-3]?\d[./-])|подадени\s+документи|срок|прогноз|(?<!\w)преди(?!\w)|(?<!\w)пред\s*$|(?<!\w)след(?:\s+(?:получаване|издаване|акт))?|за\s+акт",re.I)
+    # These markers delimit milestone clauses. Future wording/dates for a later
+    # milestone (including the permit-to-use synonym) must not erase an earlier attained stage.
+    milestone_re=re.compile(r"(?<!\w)акт\s*(?:(?:обр\.?|образец)\s*)?(?:14|15|16)(?!\w)|разрешение\s+за\s+ползване|въвеждане(?:то)?\s+в\s+експлоатация|въведен[ао]?\s+в\s+експлоатация",re.I)
     for stage,pat in STAGE_PATTERNS.items():
         for m in pat.finditer(search_text):
-            sn=_snip(text,m.start(),m.end()); ctx=_near(text,m.start(),m.end(),100)
-            # A percentage explicitly tied to this milestone is a payment trigger, not proof.
+            sn=_snip(text,m.start(),m.end())
+            ctx=_near(text,m.start(),m.end(),100)
             local_before=search_text[max(0,m.start()-30):m.start()]
             local_after=search_text[m.end():min(len(search_text),m.end()+30)]
             if re.search(r"\d+\s*%[^.!?]{0,24}(?:при|за)\s*$",local_before,re.I) or re.match(r"\s*(?:при|за)\s*акт?[^.!?]{0,20}\d+\s*%",local_after,re.I):
                 rejected.append(f"Excluded payment milestone: {sn}"); continue
             if re.search(r"(?:например|сравнени[ея]\s+с|подобн[аи]\s+имот|друг[аи]?\s+(?:сграда|имот)|оферт[аи]\s+за)",ctx,re.I):
                 rejected.append(f"Excluded comparison/other listing: {sn}"); continue
-            before=search_text[max(0,m.start()-55):m.start()]
-            after=search_text[m.end():min(len(search_text),m.end()+65)]
-            prev_cues=[c for c in cue.finditer(before) if len(before)-c.end() <= 35 and not stage_re.search(before[c.end():])]
-            post_cue=cue.search(after)
+            prev_markers=list(milestone_re.finditer(search_text,0,m.start()))
+            next_marker=milestone_re.search(search_text,m.end())
+            # Numeric Act 16 followed immediately by its spelled-out permit synonym is one milestone.
+            if stage=="act16" and next_marker and re.search(r"разрешение\s+за\s+ползване|въвеждане(?:то)?\s+в\s+експлоатация|въведен[ао]?\s+в\s+експлоатация",next_marker.group(),re.I):
+                between=search_text[m.end():next_marker.start()]
+                if re.fullmatch(r"[\s/()–—-]*",between):
+                    continue
+            # Conversely, in “въвеждане в експлоатация (Акт 16)” classify the
+            # explicit numbered milestone once, so its following planned cue is seen.
+            if stage=="act16" and next_marker and re.search(r"акт\s*(?:(?:обр\\.?|образец)\s*)?16",next_marker.group(),re.I):
+                between=search_text[m.end():next_marker.start()]
+                if re.fullmatch(r"[\s/()–—-]*",between):
+                    continue
+            left=prev_markers[-1].end() if prev_markers else max(0,m.start()-100)
+            right=next_marker.start() if next_marker else min(len(search_text),m.end()+100)
+            before=search_text[max(left,m.start()-70):m.start()]
+            after=search_text[m.end():min(right,m.end()+100)]
+            # Cues only count when they attach to this milestone in its local clause.
+            prev_cues=[c for c in cue_before.finditer(before) if len(before)-c.end()<=40]
             future_before=bool(prev_cues) and not re.search(r"[.!?\n][^.!?\n]*$",before[prev_cues[-1].end():])
-            future_after=bool(post_cue) and post_cue.start()<=15 and not re.search(r"[.!?\n]",after[:post_cue.start()]) and not stage_re.search(after[:post_cue.start()]) and not stage_re.search(after[post_cue.end():])
+            post_cue=re.search(r"очакван|очаква(?:\s+се)?|предстоящ|предстои|предвижда(?:\s+се)?|заложен[ао]?|планиран|планира\s+се|до\s+(?:получаване|акт|края|20\d{2}|[0-3]?\d[./-])|срок|прогноз",after,re.I)
+            future_after=bool(post_cue) and post_cue.start()<=20 and not re.search(r"[.!?\n]",after[:post_cue.start()])
+            # A future cue followed by another explicit milestone refers to that later marker.
+            if future_after and next_marker:
+                between=search_text[m.end():next_marker.start()]
+                cue_match=re.search(r"очакван|очаква(?:\s+се)?|предстоящ|предстои|предвижда(?:\s+се)?|заложен[ао]?|планиран|планира\s+се|до\s+(?:получаване|акт|края|20\d{2}|[0-3]?\d[./-])|срок|прогноз",between,re.I)
+                if cue_match: future_after=False
             year=re.search(r"20(?:2[7-9]|[3-9]\d)",after)
             late_match=re.search(r"(?:ноември|декември|края\s+на\s*2026|2026\s*г?\.?\s*(?:ноември|декември))",after,re.I)
-            late_2026=bool(late_match)
-            dated_future=(bool(year) and not stage_re.search(after[:year.start()])) or (late_2026 and not stage_re.search(after[:late_match.start()]))
-            # Mention of a dated schedule section makes adjacent milestones planned.
-            deadline=bool(re.search(r"срок",before[-35:],re.I)) and not stage_re.search(before[re.search(r"срок",before[-35:],re.I).end():])
+            date_match=year or late_match
+            date_prefix=after[:date_match.start()] if date_match else ""
+            nonspecific_future_work=bool(re.search(r"завършен|довърш|ремонт|обзавед|готов|завършване",date_prefix,re.I))
+            historical_year_nearby=bool(re.search(r"(?:акт\s*16|разрешение\s+за\s+ползване)\s+от\s+19\d{2}",before[-20:]+after[:20],re.I))
+            dated_future=bool(date_match) and len(date_prefix)<=40 and not nonspecific_future_work and not historical_year_nearby
+            # A standalone year/date only marks the milestone immediately attached to it.
+            deadline=bool(re.search(r"срок",before[-40:],re.I))
             neg=re.search(r"(?:няма|без|не\s+(?:е\s+)?(?:взет|издаден|получен))\s*$",before[-24:],re.I)
-            # Direct denial is tied to this stage token; unrelated negatives elsewhere do not apply.
-            denied=bool(neg)
-            # “при Акт 16” is a conditional payment milestone only when paired with a nearby percentage.
             payment=bool(re.search(r"\d+\s*%[^.!?]{0,15}(?:при|за)\s*$",local_before,re.I)) or bool(re.match(r"\s*(?:при|за)\s*акт[^.!?]{0,16}\d+\s*%",local_after,re.I))
-            if future_before or future_after or dated_future or deadline or payment or denied:
+            if future_before or future_after or dated_future or deadline or payment or neg:
                 rejected.append(f"Excluded as future/unachieved: {sn}")
-                if denied: negatives.add(stage)
+                if neg: negatives.add(stage)
                 continue
             candidates.append((stage,sn))
     attained={stage for stage,_ in candidates}
@@ -82,9 +105,9 @@ def classify_stage(title: str, desc: str, listing: dict) -> tuple[str,list[str]]
     return chosen, rejected[:4]+evidence
 
 FURN_MARKERS = [
-    ("furnished", re.compile(r"(?<!не)(?:обзаведен(?:а|о|и)?|напълно\s+обзавед|луксозно\s+обзавед|мебелиран)|не\s+е\s+обзаведен(?:а|о|и)?|с\s+мебели(?:те)?|мебелите\s+са\s+включени", re.I)),
+    ("furnished", re.compile(r"(?<!не)(?<!полу)(?:обзаведен(?:а|о|и)?|напълно\s+обзавед|луксозно\s+обзавед|мебелиран)|не\s+е\s+обзаведен(?:а|о|и)?|с\s+мебели(?:те)?|мебелите\s+са\s+включени", re.I)),
     ("unfurnished", re.compile(r"необзаведен(?:а|о|и)?|не\s+е\s+обзаведен(?:а|о|и)?|не\s+се\s+продава.{0,15}обзаведен|без\s+обзавеждане|без\s+мебел|празен\s+апартамент", re.I)),
-    ("partial", re.compile(r"частично\s+обзавед|не\s+е\s+напълно\s+обзавед|кухня\s+с\s+уреди|вградени\s+(?:кухненски\s+)?уреди|обзаведен[аио]?\s+(?:само\s+)?(?:кухн|спалн)|с\s+кухненск[аио]?\s+обзавеждане", re.I)),
+    ("partial", re.compile(r"частично\s+обзавед|полуобзаведен(?:а|о|и)?|не\s+е\s+напълно\s+обзавед|кухня\s+с\s+уреди|вградени\s+(?:кухненски\s+)?уреди|обзаведен[аио]?\s+(?:само\s+)?(?:кухн|спалн)|с\s+кухненск[аио]?\s+обзавеждане", re.I)),
 ]
 
 def classify_furnishing(title: str, desc: str) -> tuple[str,list[str]]:
@@ -95,6 +118,10 @@ def classify_furnishing(title: str, desc: str) -> tuple[str,list[str]]:
             ctx=_near(text,m.start(),m.end(),55); sn=_snip(text,m.start(),m.end(),65)
             # Ignore hypothetical offers and negated adjective fragments.
             furnishing_prefix=text[max(0,m.start()-55):m.start()]
+            if re.search(r"(?:визуализац|илюстратив|генериран.{0,20}изображен|AI.{0,20}изображен)",ctx,re.I) and re.search(r"обзаведен\s+вид|изображен",ctx,re.I):
+                evidence.append(f"Excluded rendered furnishing reference: {sn}"); continue
+            if label in {"furnished","partial"} and re.search(r"(?:кът\s+за\s+отдих|общи\s+части|срещи\s+с\s+камин|лобби)",ctx,re.I) and not re.search(r"(?:апартамент|имот|жилищ).{0,35}обзавед|обзавед.{0,35}(?:апартамент|имот|жилищ)",ctx,re.I):
+                evidence.append(f"Excluded shared-area furnishing: {sn}"); continue
             if re.search(r"може\s+да\s+(?:бъде|се\s+закупи)|ще\s+бъде|възможност|по\s+желание|да\s+се",furnishing_prefix,re.I) and not re.search(r"[.!?][^.!?]*$",furnishing_prefix):
                 evidence.append(f"Excluded hypothetical furnishing: {sn}"); continue
             if label=="furnished" and (re.search(r"не\s+(?:е\s+)?(?:напълно\s+)?обзавед|не\s+се\s+продава.{0,15}обзавед|без\s+обзавеждане",ctx,re.I) or re.search(r"частично\s*$",furnishing_prefix,re.I) or re.search(r"не\s+е\s+напълно\s*$",furnishing_prefix,re.I)):
@@ -120,7 +147,7 @@ def classify_record(record: dict) -> dict:
     stage,se=classify_stage(title,desc,listing)
     furnishing,fe=classify_furnishing(title,desc)
     return {"provider":record.get("provider"),"originalUrl":listing.get("originalUrl"),"stage":stage,"furnishing":furnishing,
-            "stageEvidence":se,"furnishingEvidence":fe,"method":"bg-property-stage-furnishing-rules-v1"}
+            "stageEvidence":se,"furnishingEvidence":fe,"method":"bg-property-stage-furnishing-rules-v2"}
 
 def run(source: Path, outdir: Path) -> dict:
     raw=source.read_bytes(); digest=hashlib.sha256(raw).hexdigest()
@@ -146,7 +173,7 @@ def run(source: Path, outdir: Path) -> dict:
             csv_writer.writerow(csv_row)
             n+=1; stage_counts[result["stage"]]+=1; furn_counts[result["furnishing"]]+=1
     summary={"method":"Deterministic Bulgarian text rules; full title and description; no per-record LLM or human verification.",
-             "methodVersion":"bg-property-stage-furnishing-rules-v1","sourcePath":str(source),"sourceSha256":digest,
+             "methodVersion":"bg-property-stage-furnishing-rules-v2","sourcePath":str(source),"sourceSha256":digest,
              "sourceDate":"2026-10-22","recordCount":n,"stageCounts":dict(sorted(stage_counts.items())),
              "furnishingCounts":dict(sorted(furn_counts.items())),"classificationPath":str(target),"classificationCsvPath":str(csv_target)}
     summary_tmp.write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")

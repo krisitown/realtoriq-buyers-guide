@@ -1,24 +1,38 @@
 {
   "method": "Deterministic Bulgarian text rules; full title and description; no per-record LLM or human verification.",
-  "methodVersion": "bg-property-stage-furnishing-rules-v1",
+  "methodVersion": "bg-property-stage-furnishing-rules-v2",
   "sourceSha256": "7e5f6f8f567c2aba0768215d75424fc112666b031f8b75623c1686a93c09d7f1",
   "sourceDate": "2026-10-22",
   "recordCount": 15569,
   "stageCounts": {
-    "act14": 606,
-    "act15": 445,
-    "act16": 2420,
+    "act14": 668,
+    "act15": 478,
+    "act16": 2556,
     "green": 10,
     "not_applicable": 284,
-    "unknown": 11804
+    "unknown": 11573
   },
   "furnishingCounts": {
-    "conflict": 17,
-    "furnished": 3579,
-    "partial": 78,
-    "unfurnished": 249,
-    "unknown": 11646
+    "conflict": 15,
+    "furnished": 3482,
+    "partial": 144,
+    "unfurnished": 251,
+    "unknown": 11677
   },
   "classificationCsvPath": "classifications/listing-classifications.csv",
-  "classifiedOn": "2026-10-25"
+  "classifiedOn": "2026-10-25",
+  "buyerStatusMethod": "combined-buyer-status-v1",
+  "buyerStatusCounts": {
+    "act15": 443,
+    "act16_unspecified": 1922,
+    "unknown": 8667,
+    "act16_unfurnished": 51,
+    "furnished_stage_unknown": 2895,
+    "act16_furnished": 566,
+    "act14": 667,
+    "green": 10,
+    "act16_partial": 13,
+    "review": 51,
+    "not_applicable": 284
+  }
 }

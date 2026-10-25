@@ -26,7 +26,7 @@ Updated **25 October 2026**, using the original 22 October snapshot. A lightweig
 - Furnishing, independently: `furnished`, `partial`, `unfurnished`, `unknown`, `conflict`.
 - Expected/future stages and payment milestones are not treated as achieved stages. Unclear evidence remains unknown.
 - Duplicate groups retain source evidence; disagreeing non-unknown labels become conflicting claims.
-- Stage/furnishing filters update the price benchmarks, budget counts and price checker. Segment medians require at least eight eligible groups. They do not measure the causal value of construction stage or furniture.
+- One combined property-status selector updates the price benchmarks, budget counts and price checker. Segment medians require at least eight eligible groups. They do not measure the causal value of construction stage or furniture.
 
 [Download all-source classifications](property-classifications.csv). The export contains one row per captured source URL, including rentals and areas outside the buyer report. The report's interactive shortlist remains sale-only in the eight selected neighbourhoods. See `classification-summary.json` for source fingerprint and full-data counts.
 
@@ -42,3 +42,11 @@ python3 -m unittest discover -s tools -p test_classify_properties.py
 ```
 
 Each input record is an object containing `provider` and `listing`, with `listing.originalUrl`, `listing.title` and `listing.description`. Reproduction does not fetch listings or update the published report automatically.
+
+## Combined buyer status and sample visibility
+
+The report presents one status selector: early stages, Act 16 with explicit furnishing subgroups, furnished with an unconfirmed act, unstated stage, and needs-review cases. Act 14/15 or green listings with furnishing claims are flagged for review; the interface never promotes furniture alone to Act 16. “Act 16 — all” is a convenience filter over the Act 16 furnishing groups.
+
+The selector shows current sample counts and disables empty options. The stage-sample comparison shows selected-area counts alongside the same property type across all eight areas. Wider-area and all-type controls help explore inventory. All-type mode withholds price benchmarks to avoid mixing houses, apartments and land.
+
+The full CSV includes the original source-stage/furnishing labels plus `buyerStatus` and `buyerStatusLabel`. The combined rules are in `tools/property_status.py`. Classifier v2 corrects false stage exclusions from unrelated future wording and filters furniture claims about shared amenities or illustrative renderings. These remain text-derived, unverified claims.
