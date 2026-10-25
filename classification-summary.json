@@ -1,0 +1,24 @@
+{
+  "method": "Deterministic Bulgarian text rules; full title and description; no per-record LLM or human verification.",
+  "methodVersion": "bg-property-stage-furnishing-rules-v1",
+  "sourceSha256": "7e5f6f8f567c2aba0768215d75424fc112666b031f8b75623c1686a93c09d7f1",
+  "sourceDate": "2026-10-22",
+  "recordCount": 15569,
+  "stageCounts": {
+    "act14": 606,
+    "act15": 445,
+    "act16": 2420,
+    "green": 10,
+    "not_applicable": 284,
+    "unknown": 11804
+  },
+  "furnishingCounts": {
+    "conflict": 17,
+    "furnished": 3579,
+    "partial": 78,
+    "unfurnished": 249,
+    "unknown": 11646
+  },
+  "classificationCsvPath": "classifications/listing-classifications.csv",
+  "classifiedOn": "2026-10-25"
+}
