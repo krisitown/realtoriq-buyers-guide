@@ -6,7 +6,7 @@ A self-contained, interactive report covering Dragalevtsi and seven comparison n
 
 ## Data and interpretation
 
-The report uses the **22 October 2026** collection snapshot: 3,739 sale advertisements in the selected areas, tentatively grouped into 2,169 ad groups. Collection ended with gaps on every source. These are **asking prices**, not completed transactions or verified valuations. Duplicate groups are estimates, not confirmed unique properties. The full screening, grouping and statistical methodology is documented inside the report.
+The report pools captures from **22–25 October 2026**: 4,221 sale advertisements in the selected areas, tentatively grouped into 2,469 ad groups. The expanded Sofia export contains 16,051 source records. Collection remains partial. These are **asking prices**, not completed transactions or verified valuations. Duplicate groups are estimates, not confirmed unique properties. The full screening, grouping and statistical methodology is documented inside the report.
 
 Advertiser descriptions and links are included as source evidence. Their claims and present availability have not been independently verified. Third-party listing content remains attributable to its respective sources.
 
@@ -20,7 +20,7 @@ Crawler code, raw collection files, credentials and local workspace configuratio
 
 ## Construction stage and furnishing classification
 
-Updated **25 October 2026**, using the original 22 October snapshot. A lightweight Luna agent designed and audited reproducible Bulgarian text rules, applied to **all 15,569 captured source records** (sale and rent). This is agent-assisted rule-based extraction, not a separate model review or legal verification of every property.
+Updated **25 October 2026**, using the expanded pooled snapshot. A lightweight Luna agent designed and audited reproducible Bulgarian text rules, applied to **all 16,051 captured source records** (sale and rent). This is agent-assisted rule-based extraction, not a separate model review or legal verification of every property.
 
 - Construction: `green`, `act14`, `act15`, `act16`, `unknown`, `conflict`, `not_applicable`.
 - Furnishing, independently: `furnished`, `partial`, `unfurnished`, `unknown`, `conflict`.
@@ -50,3 +50,11 @@ The report presents one status selector: early stages, Act 16 with explicit furn
 The selector shows current sample counts and disables empty options. The stage-sample comparison shows selected-area counts alongside the same property type across all eight areas. Wider-area and all-type controls help explore inventory. All-type mode withholds price benchmarks to avoid mixing houses, apartments and land.
 
 The full CSV includes the original source-stage/furnishing labels plus `buyerStatus` and `buyerStatusLabel`. The combined rules are in `tools/property_status.py`. Classifier v2 corrects false stage exclusions from unrelated future wording and filters furniture claims about shared amenities or illustrative renderings. These remain text-derived, unverified claims.
+
+## Dataset expansion — 25 October 2026
+
+Fresh targeted crawls on Imot.bg, Holmes.bg and Imoti.com captured 940 sale ads across all eight comparison areas: 482 previously missing source URLs and 458 refreshed existing records. Each source used neighbourhood searches; Imot and Holmes also searched specifically for Dragalevtsi two-room apartments. All three runs finished without crawler failures. General searches were deliberately limited to three pages in Dragalevtsi and one in each other district, so the collection is not exhaustive. The Imot two-room search reached its terminal page; Holmes had more pages beyond its three-page budget.
+
+Dragalevtsi tentative ad groups increased from **105 to 295**, and its two-room sample from **28 to 126**. Across all eight areas, groups increased from **2,169 to 2,469**. Counts describe advertisements and approximate duplicate groups, not verified unique available properties.
+
+The merge keeps the newest capture per provider/source URL. Older unrefreshed ads are retained and may no longer be available. Individual source capture dates appear beside report links; dates describe capture, not initial publication. [Collection summary and coverage limits](collection-summary.json) record the expansion.

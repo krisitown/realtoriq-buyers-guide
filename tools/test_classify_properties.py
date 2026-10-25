@@ -1,7 +1,22 @@
+import json
+import tempfile
 import unittest
-from classify_properties import classify_stage, classify_furnishing
+from pathlib import Path
+from classify_properties import classify_stage, classify_furnishing, run
 
 class ClassificationTests(unittest.TestCase):
+    def test_summary_uses_source_capture_range(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); source=root/'source.jsonl'
+            with source.open('w') as out:
+                for i,captured in enumerate(('2026-10-22T12:00:00+03:00','2026-10-25T14:00:00+03:00')):
+                    record={'provider':'example','capturedAt':captured,'listing':{'originalUrl':f'https://example.org/{i}','title':'Продава апартамент','description':''}}
+                    out.write(json.dumps(record)+'\n')
+            summary=run(source,root/'classifications')
+            self.assertEqual(summary['recordCount'],2)
+            self.assertEqual(summary['sourceDate'],'2026-10-25')
+            self.assertEqual(summary['capturedFrom'],'2026-10-22T12:00:00+03:00')
+            self.assertEqual(summary['capturedThrough'],'2026-10-25T13:00:00+02:00')
     def stage(self, text):
         return classify_stage("Продава апартамент", text, {})[0]
     def furnishing(self, text):

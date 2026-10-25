@@ -1,0 +1,94 @@
+{
+  "updatedOn": "2026-10-25",
+  "capturedRecords": 940,
+  "newSourceUrls": 482,
+  "refreshedSourceUrls": 458,
+  "pooledSourceRows": 16051,
+  "before": {
+    "sourceRows": 15569,
+    "areaAds": 3739,
+    "areaGroups": 2169,
+    "areaCounts": {
+      "Манастирски ливади": 334,
+      "Кръстова вада": 233,
+      "Витоша": 313,
+      "Малинова долина": 922,
+      "Симеоново": 93,
+      "Бояна": 147,
+      "Драгалевци": 105,
+      "Хладилника": 22
+    },
+    "dragalevtsiByKind": {
+      "2 rooms": 28,
+      "1 room / studio": 7,
+      "3 rooms": 33,
+      "4+ rooms": 10,
+      "Land": 5,
+      "House": 21,
+      "Maisonette": 1
+    },
+    "dragalevtsiTwoRoomStatus": {
+      "unknown": 15,
+      "furnished_stage_unknown": 3,
+      "act16_unspecified": 7,
+      "act14": 2,
+      "act16_furnished": 1
+    }
+  },
+  "after": {
+    "areaAds": 4221,
+    "areaGroups": 2469,
+    "areaCounts": {
+      "Кръстова вада": 245,
+      "Малинова долина": 931,
+      "Драгалевци": 295,
+      "Витоша": 320,
+      "Бояна": 157,
+      "Манастирски ливади": 342,
+      "Симеоново": 111,
+      "Хладилника": 68
+    },
+    "dragalevtsiByKind": {
+      "3 rooms": 62,
+      "Maisonette": 4,
+      "4+ rooms": 26,
+      "Land": 7,
+      "House": 61,
+      "2 rooms": 126,
+      "1 room / studio": 7,
+      "Commercial": 2
+    }
+  },
+  "captureDateRange": "22 October 2026–25 October 2026",
+  "scope": {
+    "city": "София",
+    "listingType": "SALE",
+    "districts": [
+      "Драгалевци",
+      "Хладилника",
+      "Симеоново",
+      "Бояна",
+      "Кръстова вада",
+      "Манастирски ливади",
+      "Витоша",
+      "Малинова долина"
+    ],
+    "propertyTypes": "all residential and nonresidential search results; downstream report classifies residences",
+    "searchPageBudget": {
+      "DragalevtsiGeneral": 3,
+      "OtherDistrictGeneral": 1,
+      "DragalevtsiTwoRoom": 3,
+      "twoRoomSources": [
+        "imot",
+        "holmes"
+      ]
+    },
+    "requestsPerMinutePerProvider": 30
+  },
+  "limitations": [
+    "General district searches with additional pages were intentionally stopped at the configured page budget; this is not exhaustive Sofia market coverage.",
+    "Holmes Dragalevtsi two-room search also has pages beyond the three-page budget.",
+    "Pooled partial captures. Older unrefreshed ads are retained; present availability is not verified."
+  ],
+  "sourceSha256": "499d04948f2c314563109e24577dc9ef9b18efad86d8f8cab778b45ef24de84f"
+}

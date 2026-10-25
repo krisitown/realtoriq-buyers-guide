@@ -6,7 +6,9 @@ This is reproducible text classification, not per-listing legal or human verific
 from __future__ import annotations
 import argparse, csv, hashlib, json, os, re
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 STAGES = ["green", "act14", "act15", "act16"]
 STAGE_PATTERNS = {
@@ -151,7 +153,7 @@ def classify_record(record: dict) -> dict:
 
 def run(source: Path, outdir: Path) -> dict:
     raw=source.read_bytes(); digest=hashlib.sha256(raw).hexdigest()
-    stage_counts=Counter(); furn_counts=Counter(); n=0
+    stage_counts=Counter(); furn_counts=Counter(); n=0; captures=[]
     outdir.mkdir(parents=True,exist_ok=True)
     target=outdir/"listing-classifications.jsonl"
     csv_target=outdir/"listing-classifications.csv"
@@ -166,15 +168,20 @@ def run(source: Path, outdir: Path) -> dict:
             if not line.strip(): continue
             try: record=json.loads(line)
             except json.JSONDecodeError as e: raise ValueError(f"Invalid JSON on line {line_no}: {e}") from e
+            captures.append(datetime.fromisoformat(record["capturedAt"].replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Sofia")))
             result=classify_record(record); out.write(json.dumps(result,ensure_ascii=False)+"\n")
             csv_row=dict(result)
             csv_row["stageEvidence"]=json.dumps(result["stageEvidence"],ensure_ascii=False)
             csv_row["furnishingEvidence"]=json.dumps(result["furnishingEvidence"],ensure_ascii=False)
             csv_writer.writerow(csv_row)
             n+=1; stage_counts[result["stage"]]+=1; furn_counts[result["furnishing"]]+=1
+    if not captures: raise ValueError("Source contains no records")
+    first,last=min(captures),max(captures)
     summary={"method":"Deterministic Bulgarian text rules; full title and description; no per-record LLM or human verification.",
              "methodVersion":"bg-property-stage-furnishing-rules-v2","sourcePath":str(source),"sourceSha256":digest,
-             "sourceDate":"2026-10-22","recordCount":n,"stageCounts":dict(sorted(stage_counts.items())),
+             "sourceDate":last.date().isoformat(),"capturedFrom":first.isoformat(),"capturedThrough":last.isoformat(),
+             "classificationDate":datetime.now(ZoneInfo("Europe/Sofia")).date().isoformat(),
+             "recordCount":n,"stageCounts":dict(sorted(stage_counts.items())),
              "furnishingCounts":dict(sorted(furn_counts.items())),"classificationPath":str(target),"classificationCsvPath":str(csv_target)}
     summary_tmp.write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     # Build every artifact completely first, then atomically replace each published path.
@@ -184,5 +191,7 @@ def run(source: Path, outdir: Path) -> dict:
     return summary
 
 if __name__=="__main__":
-    ap=argparse.ArgumentParser(); ap.add_argument("source",type=Path); ap.add_argument("--outdir",type=Path,default=Path("classifications")); args=ap.parse_args()
-    print(json.dumps(run(args.source,args.outdir),ensure_ascii=False,indent=2))
+    ap=argparse.ArgumentParser(); ap.add_argument("source",nargs="?",type=Path); ap.add_argument("--source",dest="source_option",type=Path); ap.add_argument("--outdir","--classification-folder",type=Path,default=Path("classifications")); args=ap.parse_args()
+    source=args.source_option or args.source
+    if source is None: ap.error("a source path is required")
+    print(json.dumps(run(source,args.outdir),ensure_ascii=False,indent=2))
